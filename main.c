@@ -89,14 +89,10 @@ int main(int argc,char ** argv)
 	{
 		programByte(dat[x]);
 		printf("Progress : %% %f\r",(float)x/524288.0*100.0);
-	}
-	for (x=0;x<524288;x++)
-	{
 		uint8_t data;
 		RS232_PollComport(24,&data,1);
 		if (data!=dat[x])
 			printf("Byte %d at address %d should be %d\n\n",data,x,dat[x]);
-		printf("Progress : %% %f\r",(float)x/524288.0*100.0);
 	}
 	free(dat);
 	return 0;
