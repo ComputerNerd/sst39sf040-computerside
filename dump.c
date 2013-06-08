@@ -39,7 +39,7 @@ int main(int argc,char ** argv)
 	}
 	waitRDY();
 	RS232_SendByte(24,'R');
-	RS232_SendByte(24,'D');
+	RS232_SendByte(24,'R');
 	waitRDY();
 	uint8_t id;
 	RS232_PollComport(24,&id,1);
