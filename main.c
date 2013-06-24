@@ -134,7 +134,6 @@ int main(int argc,char ** argv)
 	for (x=0;x<capcity;++x){
 		uint8_t data;
 		if(dump){
-			uint8_t data;
 			RS232_PollComport(24,&data,1);
 			fputc(data,fp);
 			printf("Progress : %% %f\r",(float)x/(float)capcity*100.0);
