@@ -93,7 +93,7 @@ int main(int argc,char ** argv)
 	FILE* fp;
 	uint8_t* dat;
 	if(!dump){
-		fp=fopen(argv[1],"wb");
+		fp=fopen(argv[1],"rb");
 		fseek(fp, 0L, SEEK_END);
 		size_t size = ftell(fp);
 		if (size > capcity){
@@ -127,11 +127,11 @@ int main(int argc,char ** argv)
 			return 1;
 		}
 	}else
-		fp=fopen(argv[1],"rb");	
+		fp=fopen(argv[1],"wb");	
 	//now program the chip
 	putchar('\n');
 	uint32_t x;
-	for (x=0;x<capcity;x++){
+	for (x=0;x<capcity;++x){
 		uint8_t data;
 		if(dump){
 			uint8_t data;
