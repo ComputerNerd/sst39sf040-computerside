@@ -136,16 +136,15 @@ int main(int argc,char ** argv)
 		if(dump){
 			RS232_PollComport(24,&data,1);
 			fputc(data,fp);
-			printf("Progress : %% %f\r",(float)x/(float)capcity*100.0);
 		}else{
 			programByte(dat[x]);
-			printf("Progress : %% %f\r",(float)x/(float)capcity*100.0);
 			RS232_PollComport(24,&data,1);
 			if (data!=dat[x])
 				printf("Byte %d at address %d should be %d\n\n",data,x,dat[x]);
 		}
+		printf("Progress : %% %f\r",(float)x/(float)capcity*100.0);
 	}
-	if(!dump)
+	if(dump)
 		fclose(fp);
 	free(dat);
 	return 0;
