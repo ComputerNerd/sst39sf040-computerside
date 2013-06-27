@@ -102,7 +102,7 @@ int main(int argc,char ** argv)
 			return 1;
 		}
 		rewind(fp);
-		uint8_t * dat=calloc(1,capcity);
+		dat=calloc(1,capcity);
 		if (dat==0){
 			puts("Error allocating memory");
 			fclose(fp);
