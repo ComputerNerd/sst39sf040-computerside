@@ -53,7 +53,7 @@ int main(int argc,char ** argv)
 			return 1;
 		}
 	}
-	if(RS232_OpenComport(24,1000000)){
+	if(RS232_OpenComport(24,500000)){
 		puts("Com-port 24 could not be opened");
 		return 1;
 	}
