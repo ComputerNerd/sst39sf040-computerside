@@ -1,17 +1,22 @@
-//To compile do: gcc main.c rs232.c -Wall -O2 -o flash
+//SST39SF040 FLASHER
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include "rs232.h"
+
+uint COM_PORT = -1;
+
+//Wait for "ready" status from the Arduino
 void waitRDY(void)
 {
 	static const char Sig[]="RDY";
 	uint8_t tempC,x;
 	uint32_t junkC=0;
-	puts("Waiting for RDY command");
+	printf("Waiting for RDY command\n");
 	for (x=0;x<3;++x){
 		do {
-			RS232_PollComport(24,&tempC,1);
+			RS232_PollComport(COM_PORT,&tempC,1);
 			if (tempC != Sig[x]){
 				junkC++;
 				printf("Junk Char %d or %c while waiting for %c so far skiped %d\n",tempC,tempC,Sig[x],junkC);
@@ -21,24 +26,33 @@ void waitRDY(void)
 	}
 	if (junkC != 0)
 		printf("%d junk bytes skipped\n",junkC);
-	puts("Ready recived");
+	printf("Ready recived\n");
 }
+
+//Send a byte of data to the flash chip
 void programByte(uint8_t dat)
 {
 	uint8_t datr;
-again:
-	RS232_SendByte(24,dat);
-	RS232_PollComport(24,&datr,1);
+//again:
+	RS232_SendByte(COM_PORT,dat);
+	RS232_PollComport(COM_PORT,&datr,1);
 	if (datr!='N')
-		printf("Error programming byte letter code '%c'\n",datr);
+		printf("ERROR: Programming byte letter code '%c' failed\n",datr);
 }
+
+//Show help info
 void help(void){
-	puts("Usage: flash filename [-d]");
-	puts("-d is optional");
-	puts("If you specify -d that means to dump flash chip instead of write and file will be for output instead of input");
+	printf("Usage: flash filename [-d]\n");
+	printf("-d is optional\n");
+	printf("If you specify -d that means to dump flash chip instead of write and file will be for output instead of input\n");
 }
+
+//Main
 int main(int argc,char ** argv)
 {
+	//Input COM port
+	printf("Input COM port number: ");
+	scanf("%d", &COM_PORT);
 	uint8_t dump=0;
 	if (argc!=2&&argc!=3){
 		help();
@@ -53,41 +67,41 @@ int main(int argc,char ** argv)
 			return 1;
 		}
 	}
-	if(RS232_OpenComport(24,500000)){
-		puts("Com-port 24 could not be opened");
+	if(RS232_OpenComport(COM_PORT,500000)){
+		printf("Com-port %i could not be opened\n", COM_PORT);
 		return 1;
 	}
 	waitRDY();
-	RS232_SendByte(24,'R');
+	RS232_SendByte(COM_PORT,'R');
 	if(dump)
-		RS232_SendByte(24,'R');
+		RS232_SendByte(COM_PORT,'R');
 	else
-		RS232_SendByte(24,'W');
+		RS232_SendByte(COM_PORT,'W');
 	waitRDY();
 	uint8_t id,manid;
-	RS232_PollComport(24,&manid,1);
+	RS232_PollComport(COM_PORT,&manid,1);
 	printf("Manufacture ID: 0x%X\nDetcted as: ",manid);
 	if(manid==0xBF)
-			puts("SST/microchip");
+			printf("SST/Microchip");
 	else
-		puts("Unkown manufacturer");
-	RS232_PollComport(24,&id,1);
+		printf("Unknown manufacturer\n");
+	RS232_PollComport(COM_PORT,&id,1);
 	printf("Device ID: 0x%X\n",id);
 	uint32_t capcity=524288;
 	switch(id){
 		case 0xB5:
-			puts("SST39SF010A");
+			printf("SST39SF010A\n");
 			capcity=131072;
 		case 0xB6:
-			puts("SST39SF020A");
+			printf("SST39SF020A\n");
 			capcity=262144;
 		break;
 		case 0xB7:
-			puts("SST39SF040");
+			printf("SST39SF040\n");
 			capcity=524288;
 		break;
 		default:
-			puts("ERROR: cannot deterim chip capacity defaulting to 524288");
+			printf("ERROR: Cannot determine chip capacity, defaulting to 524288\n");
 		break;
 	}
 	FILE* fp;
@@ -97,32 +111,32 @@ int main(int argc,char ** argv)
 		fseek(fp, 0L, SEEK_END);
 		size_t size = ftell(fp);
 		if (size > capcity){
-			puts("Your file is too large");
+			printf("ERROR: File too large\n");
 			fclose(fp);
 			return 1;
 		}
 		rewind(fp);
-		dat=calloc(1,capcity);
+		dat=(uint8_t*)calloc(1,capcity);
 		if (dat==0){
-			puts("Error allocating memory");
+			printf("ERROR: Cannot allocate memory\n");
 			fclose(fp);
 			return 1;
 		}
 		fread(dat,1,size,fp);
 		fclose(fp);
-		RS232_PollComport(24,&id,1);
+		RS232_PollComport(COM_PORT,&id,1);
 		//putchar(id);//should be upercase 'D'
 		if(id!='D'){
-			puts("An error has occuring exiting...");
+			printf("An error has occured, exiting...\n");
 			free(dat);
 			return 1;
 		}
 		putchar('\n');
-		RS232_PollComport(24,&id,1);
+		RS232_PollComport(COM_PORT,&id,1);
 		if (id == 'S')
-			puts("Chip is erased");
+			printf("Chip is erased\n");
 		else{
-			printf("Error erasing chip code %c\n",id);
+			printf("ERROR: Erasing chip code %c failed\n",id);
 			free(dat);
 			return 1;
 		}
@@ -134,11 +148,11 @@ int main(int argc,char ** argv)
 	for (x=0;x<capcity;++x){
 		uint8_t data;
 		if(dump){
-			RS232_PollComport(24,&data,1);
+			RS232_PollComport(COM_PORT,&data,1);
 			fputc(data,fp);
 		}else{
 			programByte(dat[x]);
-			RS232_PollComport(24,&data,1);
+			RS232_PollComport(COM_PORT,&data,1);
 			if (data!=dat[x])
 				printf("Byte %d at address %d should be %d\n\n",data,x,dat[x]);
 		}
