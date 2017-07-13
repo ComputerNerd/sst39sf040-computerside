@@ -73,18 +73,18 @@ int main(int argc,char ** argv)
 		puts("Unkown manufacturer");
 	RS232_PollComport(24,&id,1);
 	printf("Device ID: 0x%X\n",id);
-	uint32_t capcity=524288;
+	uint32_t capacity=524288;
 	switch(id){
 		case 0xB5:
 			puts("SST39SF010A");
-			capcity=131072;
+			capacity=131072;
 		case 0xB6:
 			puts("SST39SF020A");
-			capcity=262144;
+			capacity=262144;
 		break;
 		case 0xB7:
 			puts("SST39SF040");
-			capcity=524288;
+			capacity=524288;
 		break;
 		default:
 			puts("ERROR: cannot deterim chip capacity defaulting to 524288");
@@ -96,13 +96,13 @@ int main(int argc,char ** argv)
 		fp=fopen(argv[1],"rb");
 		fseek(fp, 0L, SEEK_END);
 		size_t size = ftell(fp);
-		if (size > capcity){
+		if (size > capacity){
 			puts("Your file is too large");
 			fclose(fp);
 			return 1;
 		}
 		rewind(fp);
-		dat=calloc(1,capcity);
+		dat=calloc(1,capacity);
 		if (dat==0){
 			puts("Error allocating memory");
 			fclose(fp);
@@ -131,7 +131,7 @@ int main(int argc,char ** argv)
 	//now program the chip
 	putchar('\n');
 	uint32_t x;
-	for (x=0;x<capcity;++x){
+	for (x=0;x<capacity;++x){
 		uint8_t data;
 		if(dump){
 			RS232_PollComport(24,&data,1);
@@ -142,10 +142,12 @@ int main(int argc,char ** argv)
 			if (data!=dat[x])
 				printf("Byte %d at address %d should be %d\n\n",data,x,dat[x]);
 		}
-		printf("Progress : %% %f\r",(float)x/(float)capcity*100.0);
+		if((x&255)==0)
+			printf("Progress : %% %f\r",(float)x/(float)capacity*100.0);
 	}
 	if(dump)
 		fclose(fp);
 	free(dat);
+	RS232_CloseComport(24);
 	return 0;
 }
