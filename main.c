@@ -13,7 +13,7 @@ void waitRDY(void)
 	static const char Sig[]="RDY";
 	uint8_t tempC,x;
 	uint32_t junkC=0;
-	printf("Waiting for RDY\n");
+	//printf("Waiting for RDY\n");
 	for (x=0;x<3;++x){
 		do {
 			RS232_PollComport(COM_PORT,&tempC,1);
@@ -21,10 +21,10 @@ void waitRDY(void)
 				junkC++;
 				printf("Junk Char %d or %c while waiting for %c so far skiped %d\n",tempC,tempC,Sig[x],junkC);
 			}
-			putchar(tempC);
+			//putchar(tempC);
 		} while (tempC != Sig[x]);
 	}
-	printf(" recived\n");
+	//printf(" recived\n");
 	if (junkC != 0)
 		printf("/n%d junk bytes skipped\n",junkC);
 }
@@ -50,6 +50,7 @@ void help(void){
 //Main
 int main(int argc, char* argv[])
 {	
+	printf("\n------- SST FLASHER -------\n\n");
 	//Input COM port
 	printf("Input COM port number: ");
 	scanf("%d", &COM_PORT);
@@ -62,7 +63,6 @@ int main(int argc, char* argv[])
 	}
 	else if(argc==3){
 		if(strcmp("-d",argv[2])==0){
-			printf("Dumping mode\n");
 			dump=1;
 		} else {
 			printf("To specify dumping you need to use -d but you did %s instead\nThis program will show help and exit\n",argv[2]);
@@ -73,7 +73,7 @@ int main(int argc, char* argv[])
 
 	//Open COM port
 	if(RS232_OpenComport(COM_PORT,500000)){
-		printf("Com-port %i could not be opened\n", COM_PORT);
+		printf("ERROR: COM port %i could not be opened\n", COM_PORT);
 		return 1;
 	}
 
@@ -87,29 +87,33 @@ int main(int argc, char* argv[])
 	else
 		RS232_SendByte(COM_PORT,'W');
 	waitRDY();
+
+	printf("\n- Flasher ready\n");
+
 	uint8_t id,manid;
 	RS232_PollComport(COM_PORT,&manid,1);
-	printf("Manufacture ID: 0x%X\nDetcted as: ",manid);
+	printf("\nChip information:\n");
+	printf(" Manufacture ID: 0x%X\n Detcted as: ",manid);
 	if(manid==0xBF)
 			printf("SST/Microchip\n");
 	else
 		printf("Unknown manufacturer\n");
 	RS232_PollComport(COM_PORT,&id,1);
-	printf("Device ID: 0x%X (",id);
+	printf(" Device ID: 0x%X (",id);
 	
 	//Determine flash size
-	uint32_t capcity=524288;
+	uint32_t capacity=524288;
 	switch(id){
 		case 0xB5:
 			printf("SST39SF010A)\n");
-			capcity=131072;
+			capacity=131072;
 		case 0xB6:
 			printf("SST39SF020A)\n");
-			capcity=262144;
+			capacity=262144;
 		break;
 		case 0xB7:
 			printf("SST39SF040)\n");
-			capcity=524288;
+			capacity=524288;
 		break;
 		default:
 			printf("ERROR: Cannot determine chip capacity, defaulting to 524288\n");
@@ -131,8 +135,8 @@ int main(int argc, char* argv[])
 		size_t size = ftell(fp);
 		
 		//Check for size mismatch
-		if (size > capcity){
-			printf("ERROR: File too large\n");
+		if (size > capacity){
+			printf("ERROR: File too large (%lu - %u))\n", size, capacity);
 			fclose(fp);
 			return 1;
 		}
@@ -141,7 +145,7 @@ int main(int argc, char* argv[])
 		rewind(fp);
 
 		//Allocate memory for binary data
-		dat=(uint8_t*)calloc(1,capcity);
+		dat=(uint8_t*)calloc(1,capacity);
 
 		//Check for allocation errors
 		if(dat==0){
@@ -157,36 +161,36 @@ int main(int argc, char* argv[])
 		fclose(fp);
 
 		//Flash erasing procedure
-		printf("Erasing chip...\n");
+		printf("\n- Erasing chip\n");
 		RS232_PollComport(COM_PORT,&id,1);
 		//putchar(id);//should be upercase 'D'
 		if(id!='D'){
-			printf("An error has occured, exiting...\n");
+			printf("\nAn error has occured, exiting...\n");
 			free(dat);
 			return 1;
 		}
 		putchar('\n');
 		RS232_PollComport(COM_PORT,&id,1);
 		if (id == 'S')
-			printf("Erasing complete\n");
+			printf("- Erasing complete\n");
 		else{
 			printf("ERROR: Erasing chip code %c failed\n",id);
 			free(dat);
 			return 1;
 		}
-		printf("Begin flashing %s\n", argv[1]);
+		printf("\n- Begin flashing %s\n", argv[1]);
 
 	//Dumping mode
 	} else {
 		//Open file for writing
 		fp=fopen(argv[1],"wb");	
-		printf("Begin dumping to %s\n", argv[1]);
+		printf("\n- Begin dumping to %s\n", argv[1]);
 	}
 
 	//Flashing procedure
 	putchar('\n');
 	uint32_t x;
-	for (x=0;x<capcity;++x){
+	for (x=0;x<capacity;++x){
 		uint8_t data;
 		if(dump){
 			RS232_PollComport(COM_PORT,&data,1);
@@ -197,10 +201,10 @@ int main(int argc, char* argv[])
 			if (data!=dat[x])
 				printf("Byte %d at address %d should be %d\n\n",data,x,dat[x]);
 		}
-		printf("Progress : %% %f\r",(float)x/(float)capcity*100.0);
+		printf("Progress : %% %f\r",(float)x/(float)capacity*100.0);
 	}
 	
-	printf("Operation completed!\n");
+	printf("-------- COMPLETED --------\n\n");
 
 	//Close file 
 	if(dump) fclose(fp);
