@@ -56,9 +56,13 @@ extern "C" {
 #include <sys/stat.h>
 #include <limits.h>
 
+extern char comports[30][16];
+
 #else
 
 #include <windows.h>
+
+extern char comports[16][10];
 
 #endif
 

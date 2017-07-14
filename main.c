@@ -5,11 +5,10 @@
 #include <stdio.h>
 #include "rs232.h"
 
-uint COM_PORT = -1;
+static uint COM_PORT = -1;
 
 //Wait for "ready" status from the Arduino
-void waitRDY(void)
-{
+void waitRDY(void) {
 	static const char Sig[]="RDY";
 	uint8_t tempC,x;
 	uint32_t junkC=0;
@@ -19,19 +18,16 @@ void waitRDY(void)
 			RS232_PollComport(COM_PORT,&tempC,1);
 			if (tempC != Sig[x]){
 				junkC++;
-				printf("Junk Char %d or %c while waiting for %c so far skiped %d\n",tempC,tempC,Sig[x],junkC);
+				printf("Junk Char %d or %c while waiting for %c so far skipped %d\n",tempC,tempC,Sig[x],junkC);
 			}
-			//putchar(tempC);
 		} while (tempC != Sig[x]);
 	}
-	//printf(" recived\n");
 	if (junkC != 0)
 		printf("/n%d junk bytes skipped\n",junkC);
 }
 
 //Send a byte of data to the flash chip
-void programByte(uint8_t dat)
-{
+void programByte(uint8_t dat) {
 	uint8_t datr;
 	RS232_SendByte(COM_PORT,dat);
 	RS232_PollComport(COM_PORT,&datr,1);
@@ -40,35 +36,36 @@ void programByte(uint8_t dat)
 }
 
 //Show help info
-void help(void){
-	printf("Usage: flash filename [-d]\n");
-	printf("-d is optional\n");
-	printf("If you specify -d that means to dump flash chip instead of write and file will be for output instead of input\n");
+void help(char** argv) {
+	unsigned i;
+	printf("Usage: %s COM_PORT_ID file_name [-d]\n", argv[0]);
+	printf("-d is optional and it is used to dump the contents of the flash memory chip to the specified file.\n");
+	// Print the comport IDs
+	
+	puts("COM Port ID Table:");
+	for (i = 0;i < sizeof(comports) / sizeof(comports[0]); ++i)
+		printf("\t %d %s\n", i, comports[i]);
 }
 
 //Main
-int main(int argc, char* argv[])
-{	
+int main(int argc, char** argv) {	
 	printf("\n------- SST FLASHER -------\n\n");
-	//Input COM port
-	printf("Input COM port number: ");
-	scanf("%d", &COM_PORT);
 
 	//Determine flashing/dumping mode	
-	uint8_t dump=0;
-	if (argc!=2&&argc!=3){
-		help();
+	int dump=0;
+	if (argc!=3&&argc!=4){
+		help(argv);
 		return 1;
-	}
-	else if(argc==3){
-		if(strcmp("-d",argv[2])==0){
+	} else if(argc==4){
+		if(strcmp("-d",argv[3])==0){
 			dump=1;
 		} else {
-			printf("To specify dumping you need to use -d but you did %s instead\nThis program will show help and exit\n",argv[2]);
-			help();
+			printf("To specify dumping you need to use -d but you did %s instead\nThis program will show help and exit\n",argv[3]);
+			help(argv);
 			return 1;
 		}
 	}
+	strtoul(argv[1], NULL, 10);
 
 	//Open COM port
 	if(RS232_OpenComport(COM_PORT,500000)){
@@ -92,7 +89,7 @@ int main(int argc, char* argv[])
 	uint8_t id,manid;
 	RS232_PollComport(COM_PORT,&manid,1);
 	printf("\nChip information:\n");
-	printf(" Manufacture ID: 0x%X\n Detcted as: ",manid);
+	printf(" Manufacture ID: 0x%X\n Detected as: ",manid);
 	if(manid==0xBF)
 		printf("SST/Microchip\n");
 	else
@@ -106,6 +103,7 @@ int main(int argc, char* argv[])
 		case 0xB5:
 			printf("SST39SF010A)\n");
 			capacity=131072;
+		break;
 		case 0xB6:
 			printf("SST39SF020A)\n");
 			capacity=262144;
@@ -121,7 +119,7 @@ int main(int argc, char* argv[])
 	//File to flash from/dump to
 	FILE* fp;
 	//Binary data array
-	uint8_t* dat;
+	uint8_t* dat = NULL;
 	
 	//Flashing mode
 	if(!dump){
@@ -161,9 +159,9 @@ int main(int argc, char* argv[])
 		//Flash erasing procedure
 		printf("\n- Erasing chip\n");
 		RS232_PollComport(COM_PORT,&id,1);
-		//putchar(id);//should be upercase 'D'
+		//putchar(id);//should be uppercase 'D'
 		if(id!='D'){
-			printf("\nAn error has occured, exiting...\n");
+			printf("\nAn error has occurred, exiting...\n");
 			free(dat);
 			return 1;
 		}
@@ -205,8 +203,7 @@ int main(int argc, char* argv[])
 	if(dump)
 		fclose(fp);
 	free(dat);
-	RS232_CloseComport(24);
-	}
+	RS232_CloseComport(COM_PORT);
 	
 	printf("-------- COMPLETED --------\n\n");
 
