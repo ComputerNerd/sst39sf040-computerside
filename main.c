@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include "rs232.h"
 
-static uint COM_PORT = -1;
+static int COM_PORT = -1;
 
 //Wait for "ready" status from the Arduino
 void waitRDY(void) {
@@ -35,21 +35,28 @@ void programByte(uint8_t dat) {
 		printf("ERROR: Programming byte letter code '%c' failed\n",datr);
 }
 
+//Show COM port list
+void printCOM(){
+	printf("\nCOM Port ID Table:\n");
+	for (uint i = 0;i < sizeof(comports) / sizeof(comports[0]); ++i)
+		printf("\t %d %s\n", i, comports[i]);
+}
+
 //Show help info
 void help(char** argv) {
-	unsigned i;
 	printf("Usage: %s COM_PORT_ID file_name [-d]\n", argv[0]);
 	printf("-d is optional and it is used to dump the contents of the flash memory chip to the specified file.\n");
 	// Print the comport IDs
-	
-	puts("COM Port ID Table:");
-	for (i = 0;i < sizeof(comports) / sizeof(comports[0]); ++i)
-		printf("\t %d %s\n", i, comports[i]);
+	printCOM();	
 }
+
 
 //Main
 int main(int argc, char** argv) {	
 	printf("\n------- SST FLASHER -------\n\n");
+
+	//Assign COM port number
+	sscanf(argv[1], "%d", &COM_PORT);	
 
 	//Determine flashing/dumping mode	
 	int dump=0;
@@ -67,9 +74,15 @@ int main(int argc, char** argv) {
 	}
 	strtoul(argv[1], NULL, 10);
 
+	//Display info
+	if(dump) printf("\nDumping to ");
+	else printf("Flashing from ");
+	printf("%s on COM port %d\n", argv[2], COM_PORT);
+
 	//Open COM port
 	if(RS232_OpenComport(COM_PORT,500000)){
 		printf("ERROR: COM port %i could not be opened\n", COM_PORT);
+		printCOM();
 		return 1;
 	}
 
@@ -124,7 +137,10 @@ int main(int argc, char** argv) {
 	//Flashing mode
 	if(!dump){
 		//Open file for reading
-		fp=fopen(argv[1],"rb");
+		fp=fopen(argv[2],"rb");
+
+		//Validity check
+		if(!fp) printf("ERROR: File cannot be opened\n");
 
 		//Get file size
 		fseek(fp, 0L, SEEK_END);
@@ -136,7 +152,6 @@ int main(int argc, char** argv) {
 			fclose(fp);
 			return 1;
 		}
-
 		//Return to beginning of file
 		rewind(fp);
 
@@ -174,13 +189,13 @@ int main(int argc, char** argv) {
 			free(dat);
 			return 1;
 		}
-		printf("\n- Begin flashing %s\n", argv[1]);
+		printf("\n- Begin flashing %s\n", argv[2]);
 
 	//Dumping mode
 	} else {
 		//Open file for writing
-		fp=fopen(argv[1],"wb");	
-		printf("\n- Begin dumping to %s\n", argv[1]);
+		fp=fopen(argv[2],"wb");	
+		printf("\n- Begin dumping to %s\n", argv[2]);
 	}
 
 	//Flashing procedure
@@ -200,9 +215,8 @@ int main(int argc, char** argv) {
 		if((x&255)==0)
 			printf("Progress : %% %f\r",(float)x/(float)capacity*100.0);
 	}
-	if(dump)
-		fclose(fp);
-	free(dat);
+	
+	//Close serial connection
 	RS232_CloseComport(COM_PORT);
 	
 	printf("-------- COMPLETED --------\n\n");
