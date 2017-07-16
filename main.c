@@ -56,9 +56,6 @@ static void help(char** argv) {
 int main(int argc, char** argv) {
 	printf("\n------- SST FLASHER -------\n\n");
 
-	// Assign COM port number.
-	sscanf(argv[1], "%d", &COM_PORT);
-
 	// Determine flashing/dumping mode.
 	int dump = 0;
 	if (argc != 3 && argc != 4) {
@@ -73,7 +70,9 @@ int main(int argc, char** argv) {
 			return 1;
 		}
 	}
-	strtoul(argv[1], NULL, 10);
+	
+	// Assign COM port number.
+	COM_PORT = strtoul(argv[1], NULL, 10);
 
 	// Display info.
 	if (dump) printf("\nDumping to ");
