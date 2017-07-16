@@ -10,7 +10,7 @@
 static int COM_PORT = -1;
 
 //Wait for "ready" status from the Arduino
-void waitRDY(void) {
+static void waitRDY(void) {
 	static const char Sig[]="RDY";
 	uint8_t tempC,x;
 	uint32_t junkC=0;
@@ -29,7 +29,7 @@ void waitRDY(void) {
 }
 
 //Send a byte of data to the flash chip
-void programByte(uint8_t dat) {
+static void programByte(uint8_t dat) {
 	uint8_t datr;
 	RS232_SendByte(COM_PORT,dat);
 	RS232_PollComport(COM_PORT,&datr,1);
@@ -38,14 +38,14 @@ void programByte(uint8_t dat) {
 }
 
 //Show COM port list
-void printCOM(){
+static void printCOM(){
 	printf("\nCOM Port ID Table:\n");
 	for (uint i = 0;i < sizeof(comports) / sizeof(comports[0]); ++i)
 		printf("\t %d %s\n", i, comports[i]);
 }
 
 //Show help info
-void help(char** argv) {
+static void help(char** argv) {
 	printf("Usage: %s COM_PORT_ID file_name [-d]\n", argv[0]);
 	printf("-d is optional and it is used to dump the contents of the flash memory chip to the specified file.\n");
 	// Print the comport IDs
