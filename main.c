@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include "rs232.h"
 
+#include "flashdata.h"
+
 static int COM_PORT = -1;
 
 //Wait for "ready" status from the Arduino
@@ -102,11 +104,8 @@ int main(int argc, char** argv) {
 	uint8_t id,manid;
 	RS232_PollComport(COM_PORT,&manid,1);
 	printf("\nChip information:\n");
-	printf(" Manufacture ID: 0x%X\n Detected as: ",manid);
-	if(manid==0xBF)
-		printf("SST/Microchip\n");
-	else
-		printf("Unknown manufacturer\n");
+	printf(" Manufacturer ID: 0x%X\n Detected as: %s\n",manid, getManufacturer(manid));
+	
 	RS232_PollComport(COM_PORT,&id,1);
 	printf(" Device ID: 0x%X (",id);
 	
