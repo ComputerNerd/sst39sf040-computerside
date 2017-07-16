@@ -140,7 +140,10 @@ int main(int argc, char** argv) {
 		fp=fopen(argv[2],"rb");
 
 		//Validity check
-		if(!fp) printf("ERROR: File cannot be opened\n");
+		if(!fp){
+		   	printf("ERROR: File cannot be opened\n");
+			return 1;
+		}
 
 		//Get file size
 		fseek(fp, 0L, SEEK_END);
@@ -214,12 +217,12 @@ int main(int argc, char** argv) {
 		}
 		if((x&255)==0)
 			printf("Progress : %% %f\r",(float)x/(float)capacity*100.0);
-	}
-	
-	//Close serial connection
-	RS232_CloseComport(COM_PORT);
+	}	
 	
 	printf("-------- COMPLETED --------\n\n");
+
+	//Close serial connection
+	RS232_CloseComport(COM_PORT);
 
 	//Close file 
 	if(dump) fclose(fp);
